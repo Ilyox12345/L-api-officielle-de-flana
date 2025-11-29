@@ -43,10 +43,13 @@ async function handleViews(env) {
 // 📌 GESTION DES SCORES
 // -----------------------------
 async function handleScore(request, env) {
-    const { username, score } = await request.json();
+    const body = await request.json();
+    const username = body.username;
+    const score = body.score;
 
-    if (!username || !score)
+    if (!username || typeof score !== "number") {
         return json({ error: "Missing username or score" }, 400);
+    }
 
     const playerKey = `player-${username}`;
     const scoreKey = `score-${Date.now()}`;
@@ -61,8 +64,13 @@ async function handleScore(request, env) {
         bestScore = score;
     }
 
-    // Sauvegarder score global (pour leaderboard)
-    const entry = JSON.stringify({ username, score, timestamp: Date.now() });
+    // Sauvegarder score global pour le leaderboard
+    const entry = JSON.stringify({
+        username,
+        score,
+        timestamp: Date.now()
+    });
+
     await env.DB.put(scoreKey, entry);
 
     return json({
@@ -77,23 +85,24 @@ async function handleScore(request, env) {
 // 📌 LEADERBOARD TOP 10
 // -----------------------------
 async function handleLeaderboard(env) {
-    const { keys } = await env.DB.list({ prefix: "score-" });
+    const list = await env.DB.list({ prefix: "score-" });
 
     const scores = [];
 
-    for (const k of keys) {
+    for (const k of list.keys) {
         const raw = await env.DB.get(k.name);
         if (!raw) continue;
 
         try {
             scores.push(JSON.parse(raw));
-        } catch { }
+        } catch {}
     }
 
-    // Trier par score décroissant
+    // Trier du plus grand au plus petit
     scores.sort((a, b) => b.score - a.score);
 
-    return json(scores.slice(0, 10)); // top 10
+    // Retourner top 10
+    return json(scores.slice(0, 10));
 }
 
 
@@ -103,7 +112,8 @@ async function handleLeaderboard(env) {
 function json(obj, status = 200) {
     return new Response(JSON.stringify(obj), {
         status,
-        headers: { "Content-Type": "application/json" }
+        headers: {
+            "Content-Type": "application/json"
+        }
     });
 }
-)p$àoç=$i
