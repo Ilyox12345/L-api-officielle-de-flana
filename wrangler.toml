@@ -1,4 +1,4 @@
-name = "flana-api"
+name = "flana-api-off"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
